@@ -1,6 +1,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Movie } from "@/types/movie"
+import Pagination from "@/components/Pagination"
 
 // YTS API에서 영화 목록을 가져오는 함수
 // page: 현재 페이지 번호 (기본값: 1)
@@ -15,35 +16,6 @@ async function getMovies(page: number = 1) {
     throw new Error("Failed to fetch movies")
   }
   return res.json()
-}
-
-// 페이지네이션 버튼 컴포넌트
-// page: 표시할 페이지 번호
-// currentPage: 현재 선택된 페이지 번호
-// totalPages: 전체 페이지 수
-function PaginationButton({
-  page,
-  currentPage,
-  totalPages,
-}: {
-  page: number
-  currentPage: number
-  totalPages: number
-}) {
-  if (page < 1 || page > totalPages) return null
-
-  return (
-    <Link
-      href={`/?page=${page}`}
-      className={`px-4 py-2 rounded ${
-        page === currentPage
-          ? "bg-blue-600 text-white"
-          : "bg-blue-500 text-white hover:bg-blue-600"
-      }`}
-    >
-      {page}
-    </Link>
-  )
 }
 
 // 메인 페이지 컴포넌트
@@ -62,17 +34,6 @@ export default async function Home({
   // 전체 페이지 수 계산 (한 페이지당 20개 영화)
   const totalPages = Math.ceil(data.data.movie_count / 20)
 
-  // 페이지 범위 계산
-  const range = 2 // 현재 페이지 기준 좌우로 표시할 페이지 수
-  const startPage = Math.max(1, currentPage - range)
-  const endPage = Math.min(totalPages, currentPage + range)
-
-  // 표시할 페이지 번호 배열 생성
-  const pages = []
-  for (let i = startPage; i <= endPage; i++) {
-    pages.push(i)
-  }
-
   return (
     <main className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Movie List</h1>
@@ -85,6 +46,7 @@ export default async function Home({
                   src={movie.medium_cover_image}
                   alt={movie.title}
                   fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                   className="object-cover"
                 />
               </div>
@@ -110,56 +72,7 @@ export default async function Home({
           </Link>
         ))}
       </div>
-      <div className="mt-8 flex justify-center items-center space-x-2">
-        <Link
-          href={`/?page=1`}
-          className={`px-4 py-2 rounded ${
-            currentPage <= 1
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-blue-500 text-white hover:bg-blue-600"
-          }`}
-        >
-          {"<<"}
-        </Link>
-        <Link
-          href={`/?page=${Math.max(1, currentPage - 1)}`}
-          className={`px-4 py-2 rounded ${
-            currentPage <= 1
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-blue-500 text-white hover:bg-blue-600"
-          }`}
-        >
-          {"<"}
-        </Link>
-        {pages.map((page) => (
-          <PaginationButton
-            key={page}
-            page={page}
-            currentPage={currentPage}
-            totalPages={totalPages}
-          />
-        ))}
-        <Link
-          href={`/?page=${Math.min(totalPages, currentPage + 1)}`}
-          className={`px-4 py-2 rounded ${
-            currentPage >= totalPages
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-blue-500 text-white hover:bg-blue-600"
-          }`}
-        >
-          {">"}
-        </Link>
-        <Link
-          href={`/?page=${totalPages}`}
-          className={`px-4 py-2 rounded ${
-            currentPage >= totalPages
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-blue-500 text-white hover:bg-blue-600"
-          }`}
-        >
-          {">>"}
-        </Link>
-      </div>
+      <Pagination initialPage={currentPage} initialTotalPages={totalPages} />
     </main>
   )
 }

@@ -59,7 +59,8 @@ export default async function MoviePage({
                 src={movie.large_cover_image}
                 alt={movie.title}
                 fill
-                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                className="object-cover rounded-lg"
               />
             </div>
           </div>
@@ -83,9 +84,11 @@ export default async function MoviePage({
               <div className="text-gray-700">
                 Runtime: {movie.runtime} minutes
               </div>
-              <div className="text-gray-700">
-                Language: {movie.language.toUpperCase()}
-              </div>
+              {movie.language && (
+                <div className="text-gray-700">
+                  Language: {movie.language.toUpperCase()}
+                </div>
+              )}
               {movie.mpa_rating && (
                 <div className="text-gray-700">
                   MPA Rating: {movie.mpa_rating}
@@ -98,14 +101,15 @@ export default async function MoviePage({
                 Genres
               </h2>
               <div className="flex flex-wrap gap-2">
-                {movie.genres.map((genre) => (
-                  <span
-                    key={genre}
-                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
-                  >
-                    {genre}
-                  </span>
-                ))}
+                {movie.genres &&
+                  movie.genres.map((genre) => (
+                    <span
+                      key={genre}
+                      className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                    >
+                      {genre}
+                    </span>
+                  ))}
               </div>
             </div>
 
