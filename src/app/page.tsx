@@ -1,103 +1,165 @@
-import Image from "next/image";
+import Link from "next/link"
+import Image from "next/image"
+import { Movie } from "@/types/movie"
 
-export default function Home() {
+// YTS API에서 영화 목록을 가져오는 함수
+// page: 현재 페이지 번호 (기본값: 1)
+async function getMovies(page: number = 1) {
+  const res = await fetch(
+    `https://yts.mx/api/v2/list_movies.json?limit=20&page=${page}`,
+    {
+      next: { revalidate: 3600 },
+    }
+  )
+  if (!res.ok) {
+    throw new Error("Failed to fetch movies")
+  }
+  return res.json()
+}
+
+// 페이지네이션 버튼 컴포넌트
+// page: 표시할 페이지 번호
+// currentPage: 현재 선택된 페이지 번호
+// totalPages: 전체 페이지 수
+function PaginationButton({
+  page,
+  currentPage,
+  totalPages,
+}: {
+  page: number
+  currentPage: number
+  totalPages: number
+}) {
+  if (page < 1 || page > totalPages) return null
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <Link
+      href={`/?page=${page}`}
+      className={`px-4 py-2 rounded ${
+        page === currentPage
+          ? "bg-blue-600 text-white"
+          : "bg-blue-500 text-white hover:bg-blue-600"
+      }`}
+    >
+      {page}
+    </Link>
+  )
+}
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+// 메인 페이지 컴포넌트
+// searchParams: URL 쿼리 파라미터 (페이지 번호 포함)
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: { page?: string }
+}) {
+  // 현재 페이지 번호 (기본값: 1)
+  const currentPage = Number(searchParams?.page) || 1
+  // API에서 영화 데이터 가져오기
+  const data = await getMovies(currentPage)
+  // 영화 목록
+  const movies = data.data.movies as Movie[]
+  // 전체 페이지 수 계산 (한 페이지당 20개 영화)
+  const totalPages = Math.ceil(data.data.movie_count / 20)
+
+  // 페이지 범위 계산
+  const range = 2 // 현재 페이지 기준 좌우로 표시할 페이지 수
+  const startPage = Math.max(1, currentPage - range)
+  const endPage = Math.min(totalPages, currentPage + range)
+
+  // 표시할 페이지 번호 배열 생성
+  const pages = []
+  for (let i = startPage; i <= endPage; i++) {
+    pages.push(i)
+  }
+
+  return (
+    <main className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8">Movie List</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {movies.map((movie) => (
+          <Link href={`/movie/${movie.id}`} key={movie.id}>
+            <div className="bg-blue-50 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full flex flex-col">
+              <div className="relative aspect-[2/3] w-full">
+                <Image
+                  src={movie.medium_cover_image}
+                  alt={movie.title}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div className="p-4 flex-1 flex flex-col">
+                <h2 className="text-xl font-semibold mb-2 text-gray-900 line-clamp-2">
+                  {movie.title}
+                </h2>
+                <div className="flex justify-between text-sm text-gray-700 mt-auto">
+                  <span className="flex items-center">
+                    <svg
+                      className="w-4 h-4 mr-1 text-yellow-500"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    {movie.rating}
+                  </span>
+                  <span>{movie.year}</span>
+                </div>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+      <div className="mt-8 flex justify-center items-center space-x-2">
+        <Link
+          href={`/?page=1`}
+          className={`px-4 py-2 rounded ${
+            currentPage <= 1
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-blue-500 text-white hover:bg-blue-600"
+          }`}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          {"<<"}
+        </Link>
+        <Link
+          href={`/?page=${Math.max(1, currentPage - 1)}`}
+          className={`px-4 py-2 rounded ${
+            currentPage <= 1
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-blue-500 text-white hover:bg-blue-600"
+          }`}
         >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+          {"<"}
+        </Link>
+        {pages.map((page) => (
+          <PaginationButton
+            key={page}
+            page={page}
+            currentPage={currentPage}
+            totalPages={totalPages}
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        ))}
+        <Link
+          href={`/?page=${Math.min(totalPages, currentPage + 1)}`}
+          className={`px-4 py-2 rounded ${
+            currentPage >= totalPages
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-blue-500 text-white hover:bg-blue-600"
+          }`}
         >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+          {">"}
+        </Link>
+        <Link
+          href={`/?page=${totalPages}`}
+          className={`px-4 py-2 rounded ${
+            currentPage >= totalPages
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-blue-500 text-white hover:bg-blue-600"
+          }`}
+        >
+          {">>"}
+        </Link>
+      </div>
+    </main>
+  )
 }
