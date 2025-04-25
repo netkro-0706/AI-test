@@ -4,7 +4,7 @@ const BASE_URL = "https://yts.mx/api/v2"
 
 export async function getMovies(
   page: number = 1,
-  limit: number = 20
+  limit: number = 16
 ): Promise<MovieResponse> {
   const response = await fetch(
     `${BASE_URL}/list_movies.json?page=${page}&limit=${limit}`,
@@ -22,7 +22,10 @@ export async function getMovies(
 
 export async function getMovieDetails(movieId: number) {
   const response = await fetch(
-    `${BASE_URL}/movie_details.json?movie_id=${movieId}`
+    `${BASE_URL}/movie_details.json?movie_id=${movieId}`,
+    {
+      next: { revalidate: 3600 },
+    }
   )
 
   if (!response.ok) {
